@@ -1,0 +1,144 @@
+# =============================================================================
+# Conveyor Sorter Configuration
+# =============================================================================
+# All operational parameters live here. The code reads this file once at
+# startup. Edit values here, not in .py files.
+#
+# Units: distances in mm (matches FANUC robot frame); angles in degrees.
+# =============================================================================
+
+robot:
+  name: ER4IA
+  ip: 192.168.0.10  # set your FANUC controller IP
+  # Safe rest pose. Robot returns here between picks and starts here on boot.
+  home:
+    x: -8.759
+    y: 302.830
+    z: 2509.230
+    w: 178.249
+    p: -3.894
+    r: -136.333
+
+  # Tool orientation used for every pick/place. We only translate in X/Y/Z;
+  # the wrist stays fixed at this orientation so the gripper always points
+  # straight down at the workspace.
+  tool_orientation:
+    w: 178.249
+    p: -3.894
+    r: -136.333
+
+  # Two-stage approach:
+  #   1. Travel above the conveyor at approach_z (safe height; won't touch parts)
+  #   2. Once over the target XY, descend straight down to pick_z to grip
+  # The robot lifts back up to approach_z after the grip closes before moving
+  # laterally to the bin.
+  approach_z: 2690.0
+  pick_z: 2714.0
+
+  # Maximum time to wait for a single Cartesian move to complete (seconds).
+  move_timeout_sec: 30.0
+
+  # After each move, the actual robot pose (from /cur_cartesian) must match
+  # the commanded XYZ within this tolerance, in mm. If it doesn't, the move
+  # is treated as a failure (e.g. operator held the pendant) and the sorter
+  # re-homes and restarts the cycle.
+  position_tolerance_mm: 5.0
+
+  # Per-color drop bin poses. Add an entry for each color enabled below.
+  bins:
+    B:
+      x: 114.017
+      y: 431.0
+      z: 2684.073
+    G:
+      # TODO: jog the robot above the green bin and update these values.
+      x: 200.0
+      y: 431.0
+      z: 2684.073
+    G2:
+      x: -100.088
+      y: 235.285
+      z: 2588.0
+
+camera:
+  device: /dev/video2
+  width: 640
+  height: 480
+  fps: 25
+  # Intrinsics file produced by `ros2 run conveyor_sorter calibrate_camera`.
+  calibration_file: ~/camera_calibration.yaml
+
+workspace:
+  # Pixel-to-robot homography produced by
+  # `ros2 run conveyor_sorter calibrate_workspace`.
+  calibration_file: ~/workspace_homography.yaml
+
+detection:
+  # Contours smaller than this (in pixels squared) are rejected as noise.
+  # Lower this if your parts are small in the frame (wide camera view, parts
+  # far from camera). Too low → noise blobs get detected.
+  min_contour_area: 50
+
+  # Each color is a list of HSV ranges (multi-range supports colors that wrap
+  # the 0/179 hue boundary like red/pink). lower/upper are [H, S, V] triples
+  # with H in [0, 179], S/V in [0, 255].
+  colors:
+    B:   # Blue/violet — lower H raised to 105 so teal (G2) doesn't bleed in.
+         # If your blue part stops registering, re-run tune_colors --color B
+         # but keep H min >= 105.
+      ranges:
+        - lower: [105, 19, 132]
+          upper: [145, 255, 255]
+    G:   # Green
+      ranges:
+        - lower: [35, 60, 40]
+          upper: [75, 255, 255]
+    G2:  # Teal/cyan — H=75-100, clearly below blue's 105 floor.
+         # Tune with: ros2 run conveyor_sorter tune_colors --color G2
+      ranges:
+        - lower: [75, 80, 100]
+          upper: [100, 255, 255]
+    # P:   # Purple — disabled
+    #   ranges:
+    #     - lower: [125, 40, 40]
+    #       upper: [160, 255, 255]
+    # PK:  # Pink — disabled (wraps the 0° hue boundary)
+    #   ranges:
+    #     - lower: [145, 40, 120]
+    #       upper: [179, 255, 255]
+    #     - lower: [0, 40, 120]
+    #       upper: [10, 255, 255]
+
+motion:
+  # The sorter waits for the conveyor to stop before detecting. "Stopped"
+  # means the mean absolute pixel difference between consecutive grayscale
+  # frames stays below `diff_threshold` for `stable_frames` consecutive
+  # frames. Tune these by watching the live diff value in the log.
+  diff_threshold: 0.8
+  stable_frames: 10
+  # After a stop is detected, wait this long before grabbing the detection
+  # frame (lets any small residual jitter settle).
+  settle_sec: 0.3
+
+recovery:
+  # How many times to retry a failed move or gripper command before
+  # giving up and returning home. Set to 0 to disable retries (abort immediately).
+  max_move_retries: 3
+  max_gripper_retries: 3
+  # Seconds to wait between retries.
+  retry_delay_sec: 1.0
+
+gripper:
+  # Time to wait AFTER the gripper service returns success before commanding
+  # the next robot move. This is the EXTRA settle on top of the wait that
+  # gripper_controller.py already does internally. Pneumatic systems can be
+  # slow (cylinder + valve response) — better too generous than too short,
+  # because too short = the robot lifts before the jaws have actually closed
+  # on the part, or moves away while the jaws are still gripping.
+  settle_sec: 1.5
+  # Max time to wait for the gripper service to become available at startup.
+  service_timeout_sec: 10.0
+
+# Show a live OpenCV window of the camera feed with detection overlay.
+# Disable for headless deployments.
+preview: true

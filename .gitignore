@@ -1,0 +1,30 @@
+# colcon / ROS 2
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/
+
+# recordings and maps
+*.bag
+*.db3
+*.db
+maps/
+
+# local calibration output
+camera_calibration.yaml
+workspace_homography.yaml
+
+# editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+*.bak
+*.bak.*

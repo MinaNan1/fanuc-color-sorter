@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>conveyor_sorter</name>
+  <version>1.0.0</version>
+  <description>
+    FANUC stationary-part conveyor color sorter. Detects a part with the
+    workspace camera, converts pixel coordinates to robot frame mm via a
+    pre-calibrated homography, picks the part, and drops it into a
+    color-matched bin.
+  </description>
+  <maintainer email="minamaher9024@gmail.com">Mina Maher</maintainer>
+  <license>MIT</license>
+
+  <depend>rclpy</depend>
+  <depend>fanuc_interfaces</depend>
+  <depend>std_srvs</depend>
+  <depend>action_msgs</depend>
+  <depend>python3-yaml</depend>
+  <depend>python3-numpy</depend>
+  <depend>python3-opencv</depend>
+
+  <exec_depend>fanuc_ros2_drivers</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
