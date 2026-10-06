@@ -1,0 +1,4 @@
+# Keep LF line endings so the Python nodes and config run on Linux,
+# even when the repo is cloned or edited on Windows.
+* text=auto eol=lf
+*.png binary
